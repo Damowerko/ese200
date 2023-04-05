@@ -1,4 +1,5 @@
 import numpy as np
+from matplotlib.patches import Circle
 
 from ese200.config import Config
 
@@ -16,6 +17,24 @@ class Simulator:
         return x @ self.A.T + u @ self.B.T + noise
 
 
+def plot_obstacles(ax):
+    config = Config()
+    ax.set_aspect("equal")
+    for i in range(2):
+        for j in range(2):
+            ax.add_patch(
+                Circle(
+                    (
+                        config.trajectory_radius * (2 * i),
+                        config.trajectory_radius * (2 * j),
+                    ),
+                    config.trajectory_radius - config.trajectory_margin,
+                    color="k",
+                    fill=False,
+                )
+            )
+
+
 def generate_expert_trajectories():
     rng = np.random.default_rng()
     config = Config()
@@ -25,18 +44,18 @@ def generate_expert_trajectories():
     u = np.zeros((config.n_trajectories, len(t), 2))
 
     # generate random trajectories
-    point_offset = 0.1
     points = (
         np.asarray(
             [
-                [0.0, 0.0],
-                [1.0 - point_offset, 1.0],
-                [2.0, 0.0],
-                [1.0 - point_offset, -1.0],
-                [0.0, 0.0],
-                [-1.0 + point_offset, 1.0],
-                [-2.0, 0.0],
-                [-1.0 + point_offset, -1.0],
+                [-1, 0],
+                [-1, 2],
+                [0, 3],
+                [1, 2],
+                [1, 1],
+                [2, 1],
+                [3, 0],
+                [2, -1],
+                [0, -1],
             ]
         )
         * config.trajectory_radius
