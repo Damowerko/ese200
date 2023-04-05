@@ -1,4 +1,5 @@
 **/__pycache__/
 figures/
-data/
+data/A.npy
+data/B.npy
 .python-version
