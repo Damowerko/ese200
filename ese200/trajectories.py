@@ -1,23 +1,56 @@
-import cvxpy as cp
 import numpy as np
-import numpy.typing as npt
 
 from ese200.config import Config
 
 
-def generate():
+class Simulator:
+    def __init__(self, config: Config) -> None:
+        self.config = config
+        self.A, self.B = get_dynamics(config.time_step)
+        self.rng = np.random.default_rng()
+
+    def step(self, x, u):
+        noise = self.rng.normal(
+            scale=self.config.trajectory_noise * self.config.time_step, size=x.shape
+        )
+        return x @ self.A.T + u @ self.B.T + noise
+
+
+def generate_expert_trajectories():
     rng = np.random.default_rng()
     config = Config()
     A, B = get_dynamics(config.time_step)
     t = np.arange(0, config.duration, config.time_step)
     x = np.zeros((config.n_trajectories, len(t), 4))
     u = np.zeros((config.n_trajectories, len(t), 2))
-    points = rng.uniform(0, config.width, (config.n_trajectories, config.n_points, 2))
+
+    # generate random trajectories
+    point_offset = 0.1
+    points = (
+        np.asarray(
+            [
+                [0.0, 0.0],
+                [1.0 - point_offset, 1.0],
+                [2.0, 0.0],
+                [1.0 - point_offset, -1.0],
+                [0.0, 0.0],
+                [-1.0 + point_offset, 1.0],
+                [-2.0, 0.0],
+                [-1.0 + point_offset, -1.0],
+            ]
+        )
+        * config.trajectory_radius
+    )
+    points = points[None, ...] + rng.normal(
+        scale=config.trajectory_noise,
+        size=(config.n_trajectories,) + points.shape,
+    )
+
     for i in range(config.n_trajectories):
         x[i], u[i] = optimize(A, B, t, points[i])
-    np.save("data/states.npy", x)
-    np.save("data/inputs.npy", u)
-    np.save("data/points.npy", points)
+
+    noise = rng.normal(scale=config.state_noise * config.time_step, size=x.shape)
+    return x + noise, u, points
 
 
 def optimize(A, B, t, points):
@@ -26,32 +59,25 @@ def optimize(A, B, t, points):
     Find a trajectory that goes through all the points.
     The trajectory should have minimum acceleration.
     """
+    import cvxpy as cp
+
     u = cp.Variable((len(t), 2))
     x = cp.Variable((len(t), 4))
 
-    # initial state at points[0] and velocity is zero
-    x_start = np.zeros(4)
-    x_start[:2] = points[0]
-    # final state at points[-1] and velocity is zero
-    x_end = np.zeros(4)
-    x_end[:2] = points[-1]
-
     # assume we pass through all points at equal time intervals
-    point_idx = np.linspace(0, len(t) - 1, len(points)).astype(int)
+    # we also assume that the first point is also the last point for loop closure
+    point_idx = np.linspace(0, len(t) - 1, len(points) + 1).astype(int)[:-1]
     point_idx[0] = 0
-    point_idx[-1] = len(t) - 1
 
     # objective is to minimize the sum of squared accelerations
     objective = cp.sum_squares(u)
-
     constraints = [
         # dynamics
         x[1:] == x[:-1] @ A.T + u[:-1] @ B.T,
         # pass through points
         x[point_idx, :2] == points,
-        # initial and final state
-        x[0] == x_start,
-        x[-1] == x_end,
+        # final state should be equal to initial state
+        x[-1] == x[0],
     ]
 
     # solve optimization problem
@@ -86,4 +112,6 @@ def get_dynamics(dt: float):
 
 
 if __name__ == "__main__":
-    generate()
+    x, u, points = generate_expert_trajectories()
+    np.save("data/states.npy", x)
+    np.save("data/inputs.npy", u)
