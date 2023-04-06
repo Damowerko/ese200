@@ -5,16 +5,52 @@ from ese200.config import Config
 
 
 class Simulator:
-    def __init__(self, config: Config) -> None:
-        self.config = config
-        self.A, self.B = get_dynamics(config.time_step)
+    def __init__(self) -> None:
+        self.A, self.B = dynamics_ca_drag(Config.time_step, Config.drag_coefficient)
         self.rng = np.random.default_rng()
 
     def step(self, x, u):
         noise = self.rng.normal(
-            scale=self.config.trajectory_noise * self.config.time_step, size=x.shape
+            scale=np.array([Config.noise_position] * 2 + [Config.noise_velocity] * 2)
+            * Config.time_step,
+            size=x.shape,
         )
         return x @ self.A.T + u @ self.B.T + noise
+
+
+def dynamics_ca(dt: float):
+    # Define dynamical model parameters
+    # This is a 2D model with position and velocity
+    # state x = [x, y, vx, vy]
+    # input u = [ax, ay]
+    dt = Config.time_step
+    A = np.array(
+        [
+            [1, 0, dt, 0],
+            [0, 1, 0, dt],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1],
+        ]
+    )
+    # Input is acceleration
+    B = np.array(
+        [
+            [dt**2 / 2, 0.0],
+            [0.0, dt**2 / 2],
+            [dt, 0.0],
+            [0.0, dt],
+        ]
+    )
+    return A, B
+
+
+def dynamics_ca_drag(dt: float, mu: float):
+    A, B = dynamics_ca(dt)
+    A[0, 2] -= mu * dt**2 / 2
+    A[1, 3] -= mu * dt**2 / 2
+    A[2, 2] -= mu * dt
+    A[3, 3] -= mu * dt
+    return A, B
 
 
 def plot_obstacles(ax):
@@ -38,7 +74,7 @@ def plot_obstacles(ax):
 def generate_expert_trajectories():
     rng = np.random.default_rng()
     config = Config()
-    A, B = get_dynamics(config.time_step)
+    A, B = dynamics_ca_drag(Config.time_step, Config.drag_coefficient)
     t = np.arange(0, config.duration, config.time_step)
     x = np.zeros((config.n_trajectories, len(t), 4))
     u = np.zeros((config.n_trajectories, len(t), 2))
@@ -67,8 +103,11 @@ def generate_expert_trajectories():
 
     for i in range(config.n_trajectories):
         x[i], u[i] = optimize(A, B, t, points[i])
-
-    noise = rng.normal(scale=config.state_noise * config.time_step, size=x.shape)
+    noise = rng.normal(
+        scale=np.array([config.noise_position] * 2 + [config.noise_velocity] * 2)
+        * config.time_step,
+        size=x.shape,
+    )
     return x + noise, u, points
 
 
@@ -103,31 +142,6 @@ def optimize(A, B, t, points):
     prob = cp.Problem(cp.Minimize(objective), constraints)
     prob.solve()
     return x.value, u.value
-
-
-def get_dynamics(dt: float):
-    # Define dynamical model parameters
-    # This is a 2D model with position and velocity
-    # state x = [x, y, vx, vy]
-    # input u = [ax, ay]
-    A = np.array(
-        [
-            [1, 0, dt, 0],
-            [0, 1, 0, dt],
-            [0, 0, 1, 0],
-            [0, 0, 0, 1],
-        ]
-    )
-    # Input is acceleration
-    B = np.array(
-        [
-            [0.5 * dt**2, 0.0],
-            [0.0, 0.5 * dt**2],
-            [dt, 0.0],
-            [0.0, dt],
-        ]
-    )
-    return A, B
 
 
 if __name__ == "__main__":
