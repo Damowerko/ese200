@@ -1,3 +1,4 @@
-# Track License
-The racetrack data was obtained from [f1tenth/f1tenth_racetracks](https://github.com/f1tenth/f1tenth_racetracks.git). 
-That repository's license is GPLv3. I therefore provide the required license text in the `track` folder.
+# ESE 2000 Lab 5
+We provide two notebooks.
+* `linear_systems.ipynb` for the first part of the lab.
+* `nonlinear_systems.ipynb` for the second part of the lab.
