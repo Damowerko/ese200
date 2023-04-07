@@ -52,11 +52,20 @@ def plot_obstacles(ax):
             ax.add_patch(
                 Circle(
                     (
-                        config.trajectory_radius * (2 * i),
-                        config.trajectory_radius * (2 * j),
+                        config.trajectory_scale * (2 * i),
+                        config.trajectory_scale * (2 * j),
                     ),
-                    config.trajectory_radius - config.trajectory_margin,
+                    config.trajectory_scale - config.trajectory_margin,
                     color="k",
                     fill=False,
                 )
             )
+
+
+def dynamics_ca_drag(dt: float, mu: float):
+    A, B = dynamics_ca(dt)
+    A[0, 2] -= mu * dt**2 / 2
+    A[1, 3] -= mu * dt**2 / 2
+    A[2, 2] -= mu * dt
+    A[3, 3] -= mu * dt
+    return A, B
