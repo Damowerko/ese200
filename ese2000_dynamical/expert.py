@@ -70,8 +70,9 @@ def generate_expert_trajectory(noise=True):
         * Config.trajectory_scale
     )
     if noise:
-        points += rng.normal(
-            scale=Config.trajectory_noise,
+        points += rng.uniform(
+            low=-Config.trajectory_noise,
+            high=Config.trajectory_noise,
             size=points.shape,
         )
         x, u = optimize(A, B, t, points, Config.noise_position, Config.noise_velocity)
