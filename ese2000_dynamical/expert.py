@@ -2,8 +2,8 @@ import numpy as np
 from scipy.interpolate import make_interp_spline
 from scipy.spatial.transform import Rotation as R
 
-from ese200.config import Config
-from ese200.simulator import dynamics_ca_drag
+from ese2000_dynamical.config import Config
+from ese2000_dynamical.simulator import dynamics_ca_drag
 
 
 def optimize(A, B, t, points, noise_position=0.0, noise_velocity=0.0):

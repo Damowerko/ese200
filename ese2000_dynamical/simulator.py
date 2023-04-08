@@ -1,7 +1,6 @@
 import numpy as np
+from ese2000_dynamical.config import Config
 from matplotlib.patches import Circle
-
-from ese200.config import Config
 
 
 class Simulator:
