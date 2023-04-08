@@ -44,24 +44,6 @@ def dynamics_ca(dt: float):
     return A, B
 
 
-def plot_obstacles(ax):
-    config = Config()
-    ax.set_aspect("equal")
-    for i in range(2):
-        for j in range(2):
-            ax.add_patch(
-                Circle(
-                    (
-                        config.trajectory_scale * (2 * i),
-                        config.trajectory_scale * (2 * j),
-                    ),
-                    config.trajectory_scale - config.trajectory_margin,
-                    color="k",
-                    fill=False,
-                )
-            )
-
-
 def dynamics_ca_drag(dt: float, mu: float):
     A, B = dynamics_ca(dt)
     A[0, 2] -= mu * dt**2 / 2
